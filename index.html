@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+      #messages { margin-bottom: 40px }
+    </style>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  </head>
+  <body>
+  
+  	<ul id="messages">
+    </ul>
+    <form  class = "message_form">
+      <div id="typing_status" style="color:#58e21d"></div>
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+     
+   
+  <!-- Modal -->
+	  <div class="modal fade" id="myModal" role="dialog">
+	    <div class="modal-dialog">
+	    
+	      <!-- Modal content-->
+	      <div class="modal-content">
+	        <div class="modal-header">
+	          <button type="button" class="close" data-dismiss="modal">&times;</button>
+	          <h4 class="modal-title">Modal Header</h4>
+	        </div>
+	        <div class="modal-body">
+	          <form class="form-horizontal" id = "name_form" onsubmit="return false;">
+				  <div class="form-group">
+				    <label class="control-label col-sm-2" for="email">Name:</label>
+				    <div class="col-sm-10">
+				      <input type="name" class="form-control" id="name" placeholder="Enter Name">
+				    </div>
+				  </div>
+				  <div class="form-group"> 
+				    <div class="col-sm-offset-2 col-sm-10">
+				      <button type="submit" class="btn btn-default" id="name_submit">Submit</button>
+				    </div>
+				  </div>
+			</form>
+	        </div>
+	        <div class="modal-footer">
+	          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	        </div>
+	      </div>
+	      
+	    </div>
+	  </div>
+
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script>
+      $(function () {
+      	$('#myModal').modal('toggle');
+      	$('.message_form').hide();
+      	$typing = false;
+        var socket = io();
+        $('.message_form').submit(function(){
+          socket.emit('chat message', $('#m').val());
+          $('#m').val('');
+          return false;
+        });
+        socket.on('chat message', function(msg){
+          $('#messages').append($('<li>').html('<b>'+msg.user+'</b>: '+msg.msg));
+          console.log(document.body.scrollHeight);
+          window.scrollTo(0, document.body.scrollHeight);
+        });
+        $('#name_submit').click(function(){
+        	if($('#name').val()!=''){
+        		$('.message_form').show();
+        		$('#myModal').modal('hide');
+        		socket.emit('add user', $('#name').val());
+        		 cur_user = $('#name').val();
+        	}
+        })
+        $('#m').keyup(function(){
+        	socket.emit('typing');
+        });
+        socket.on('typing', function(msg){
+        	if(msg.user!==cur_user){
+        		 $("#typing_status").html('<b>'+msg.user + "</b> is typing..");
+                setTimeout(function () {
+                    $("#typing_status").html('');
+            	}, 3000);
+        	}
+        });
+        socket.on('broadcast user added', function(msg){
+        	if(msg.user!==cur_user){
+        		$('#messages').append($('<li>').html('<b style="padding-left:40%">'+msg.user+'</b> connected'));
+		          window.scrollTo(0, document.body.scrollHeight);
+        	}
+        });
+        socket.on('disconnect', function (msg) {
+    		$('#messages').append($('<li>').html('<b style="padding-left:40%">'+msg.user+'</b> Disconnected'));
+		          window.scrollTo(0, document.body.scrollHeight);
+  		});
+      });
+    </script>
+  </body>
+</html>
